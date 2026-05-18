@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Direct Share shortcuts — these appear in the TOP ROW of the Android share sheet
+  as app-specific targets, making Stash the first thing users see.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- "Save to Stash" — generic direct share target -->
+  <share-target android:targetClass="com.stash.stash_app.MainActivity">
+    <data android:mimeType="text/plain" />
+    <category android:name="com.stash.stash_app.directshare.SAVE" />
+  </share-target>
+
+  <share-target android:targetClass="com.stash.stash_app.MainActivity">
+    <data android:mimeType="image/*" />
+    <category android:name="com.stash.stash_app.directshare.SAVE" />
+  </share-target>
+
+  <share-target android:targetClass="com.stash.stash_app.MainActivity">
+    <data android:mimeType="video/*" />
+    <category android:name="com.stash.stash_app.directshare.SAVE" />
+  </share-target>
+
+  <share-target android:targetClass="com.stash.stash_app.MainActivity">
+    <data android:mimeType="application/*" />
+    <category android:name="com.stash.stash_app.directshare.SAVE" />
+  </share-target>
+
+</shortcuts>
