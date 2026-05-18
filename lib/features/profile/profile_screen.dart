@@ -428,7 +428,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               Center(
                 child: Text(
-                  'Stowe v1.0.0',
+                  'Stashh v1.0.0',
                   style: const TextStyle(
                       color: AppTheme.textSecondary, fontSize: 12),
                 ),

@@ -1,7 +1,7 @@
-# Stowe
+# Stashh
 
 Your AI second brain for saved videos & links. Share a reel, TikTok,
-YouTube Short, article or note from any app — Stowe extracts the title,
+YouTube Short, article or note from any app — Stashh extracts the title,
 thumbnail and transcript, categorises it with AI, and makes it
 semantically searchable. No manual folders or tagging required.
 

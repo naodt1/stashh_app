@@ -37,13 +37,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _SlideData(
       label: 'SAVE',
       headline: 'Save anything,\nfrom anywhere.',
-      body: 'Share reels, links, PDFs and messages from any app — Stowe catches everything automatically.',
+      body: 'Share reels, links, PDFs and messages from any app — Stashh catches everything automatically.',
       imageUrl: 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=800&q=80',
     ),
     _SlideData(
       label: 'ORGANIZE',
       headline: 'AI sorts it\nthe second you save.',
-      body: 'No folders to manage. No tagging needed. Just save and Stowe organises the rest.',
+      body: 'No folders to manage. No tagging needed. Just save and Stashh organises the rest.',
       imageUrl: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80',
     ),
     _SlideData(

@@ -52,7 +52,7 @@ class _StashAppState extends State<StashApp> {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     return MaterialApp.router(
-      title: 'Stowe',
+      title: 'Stashh',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeProvider.themeMode,

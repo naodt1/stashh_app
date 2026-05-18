@@ -425,7 +425,7 @@ class _AddItemSheetState extends State<AddItemSheet> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Saved to Stowe',
+                'Saved to Stashh',
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -478,7 +478,7 @@ class _AddItemSheetState extends State<AddItemSheet> {
               child: Row(
                 children: [
                   Text(
-                    'Save to Stowe',
+                    'Save to Stashh',
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,

@@ -82,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ).animate().fadeIn(delay: 100.ms),
                 const SizedBox(height: 6),
                 Text(
-                  'Sign in to Stowe',
+                  'Sign in to Stashh',
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 15,
                     color: AppTheme.textSecondary,
