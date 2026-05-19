@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/services/supabase_service.dart';
 import '../../models/stash_item.dart';
 import '../collection/add_to_collection_sheet.dart';
+import '../detail/item_detail_screen.dart';
 
 class StashItemCard extends StatelessWidget {
   final StashItem item;
@@ -201,6 +202,27 @@ class StashItemCard extends StatelessWidget {
                   ),
                 ),
               ),
+            if (item.durationSeconds != null && item.durationSeconds! > 0)
+              Positioned(
+                right: 6,
+                bottom: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.65),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${item.durationSeconds! ~/ 60}:${(item.durationSeconds! % 60).toString().padLeft(2, '0')}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -223,7 +245,11 @@ class StashItemCard extends StatelessWidget {
         );
 
     return GestureDetector(
-      onTap: item.url != null ? _openUrl : null,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ItemDetailScreen(item: item),
+        ),
+      ),
       onLongPress: () => _showActions(context),
       child: Container(
         padding: const EdgeInsets.all(12),

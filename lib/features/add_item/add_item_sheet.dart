@@ -58,6 +58,7 @@ class _AddItemSheetState extends State<AddItemSheet> {
   // Full multi-dimensional AI analysis (null until categorization runs)
   AiCategorization? _ai;
   String? _transcript;
+  int? _durationSeconds;
 
   List<Category> _categories = [];
   bool _loading = false;
@@ -188,6 +189,9 @@ class _AddItemSheetState extends State<AddItemSheet> {
       });
     }
     final durationSeconds = meta?.durationSeconds;
+    if (durationSeconds != null && durationSeconds > 0) {
+      _durationSeconds = durationSeconds.round();
+    }
     if (meta?.transcript != null && meta!.transcript!.isNotEmpty) {
       _transcript = meta.transcript;
     }
@@ -326,6 +330,17 @@ class _AddItemSheetState extends State<AddItemSheet> {
 
       final platform = isUrl ? detectPlatform(content) : null;
 
+      // AI auto-filing: if the user didn't pick a folder, file the item
+      // into a folder named after the AI's primary category (created on
+      // demand). The user can always override via the folder picker.
+      var categoryId = _selectedCategoryId;
+      if (categoryId == null &&
+          _ai?.primaryCategory != null &&
+          _ai!.primaryCategory.isNotEmpty) {
+        categoryId =
+            await SupabaseService.getOrCreateCategory(_ai!.primaryCategory);
+      }
+
       // Embedding for semantic search — built from every text signal we have.
       final embedSource = [
         title,
@@ -340,7 +355,7 @@ class _AddItemSheetState extends State<AddItemSheet> {
       await SupabaseService.createItem({
         'id': itemId,
         'user_id': user.id,
-        'category_id': _selectedCategoryId,
+        'category_id': categoryId,
         'title': title,
         'description': _description.isEmpty ? null : _description,
         'url': isUrl ? content : null,
@@ -361,6 +376,7 @@ class _AddItemSheetState extends State<AddItemSheet> {
         'topics': _ai?.topics ?? const [],
         'platform': platform,
         'transcript': _transcript,
+        'duration_seconds': _durationSeconds,
         if (embedding != null) 'embedding': embedding,
         'is_pinned': false,
         'is_favorite': false,

@@ -88,6 +88,35 @@ class SupabaseService {
     await _client.from('categories').delete().eq('id', id);
   }
 
+  /// Returns the id of the user's folder with [name] (case-insensitive),
+  /// creating it if it doesn't exist. Powers AI auto-filing.
+  static Future<String?> getOrCreateCategory(String name) async {
+    final user = currentUser;
+    if (user == null || name.trim().isEmpty) return null;
+    final clean = name.trim();
+
+    final existing = await _client
+        .from('categories')
+        .select('id')
+        .eq('user_id', user.id)
+        .ilike('name', clean)
+        .maybeSingle();
+    if (existing != null) return existing['id'] as String;
+
+    final created = await _client
+        .from('categories')
+        .insert({
+          'user_id': user.id,
+          'name': clean,
+          'icon': 'folder',
+          'color': '#000000',
+          'item_count': 0,
+        })
+        .select('id')
+        .single();
+    return created['id'] as String;
+  }
+
   // Stash Items
   static Future<List<StashItem>> getItems({String? categoryId, int limit = 50}) async {
     final user = currentUser;

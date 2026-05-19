@@ -26,6 +26,7 @@ class StashItem {
   final List<String> topics; // semantic/transcription topics
   final String? platform; // Instagram | TikTok | YouTube | …
   final String? transcript;
+  final int? durationSeconds;
 
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -56,6 +57,7 @@ class StashItem {
     this.topics = const [],
     this.platform,
     this.transcript,
+    this.durationSeconds,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -90,6 +92,7 @@ class StashItem {
       topics: _strList(json['topics']),
       platform: json['platform'] as String?,
       transcript: json['transcript'] as String?,
+      durationSeconds: (json['duration_seconds'] as num?)?.toInt(),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -121,6 +124,7 @@ class StashItem {
         'topics': topics,
         'platform': platform,
         'transcript': transcript,
+        'duration_seconds': durationSeconds,
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
       };
@@ -151,6 +155,7 @@ class StashItem {
     List<String>? topics,
     String? platform,
     String? transcript,
+    int? durationSeconds,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -180,6 +185,7 @@ class StashItem {
       topics: topics ?? this.topics,
       platform: platform ?? this.platform,
       transcript: transcript ?? this.transcript,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
