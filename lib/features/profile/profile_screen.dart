@@ -152,9 +152,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: cardColor,
+                  color: AppTheme.black,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: borderColor),
                 ),
                 child: Row(
                   children: [
@@ -163,10 +162,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       height: 56,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isDark
-                            ? const Color(0xFF2A2A2A)
-                            : AppTheme.grey100,
-                        border: Border.all(color: borderColor),
+                        color: Colors.white.withValues(alpha: 0.15),
+                        border: Border.all(color: Colors.white24),
                       ),
                       child: Center(
                         child: Text(
@@ -176,7 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white : AppTheme.textPrimary,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -191,33 +188,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             style: GoogleFonts.spaceGrotesk(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppTheme.textPrimary,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(email,
                               style: const TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 13)),
+                                  color: Colors.white70, fontSize: 13)),
                           if (_profile?.isPro == true)
                             Container(
                               margin: const EdgeInsets.only(top: 6),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 3),
                               decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white
-                                    : AppTheme.black,
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Text(
+                              child: const Text(
                                 'PRO',
                                 style: TextStyle(
-                                  color: isDark
-                                      ? AppTheme.black
-                                      : Colors.white,
+                                  color: Colors.black,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.2,
