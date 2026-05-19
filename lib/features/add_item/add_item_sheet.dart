@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -245,6 +246,9 @@ class _AddItemSheetState extends State<AddItemSheet> {
   }
 
   Future<void> _generateThumbnail(String filePath) async {
+    // Local-file thumbnailing is a native plugin — unsupported on web.
+    // (Web shares are links anyway, which use the remote og:image.)
+    if (kIsWeb) return;
     setState(() => _thumbLoading = true);
     try {
       final bytes = await VideoThumbnailPlus.thumbnailData(
@@ -371,7 +375,8 @@ class _AddItemSheetState extends State<AddItemSheet> {
         setState(() { _saved = true; _loading = false; });
         await Future.delayed(const Duration(milliseconds: 1400));
         if (mounted) Navigator.of(context).pop(true);
-        await SystemNavigator.pop();
+        // "Return to previous app" only makes sense on mobile.
+        if (!kIsWeb) await SystemNavigator.pop();
       } else {
         Navigator.of(context).pop(true);
       }

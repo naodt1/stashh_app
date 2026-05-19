@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../config/app_config.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// The 15 broad buckets every saved item is forced into (exactly one).
 const kPrimaryCategories = <String>[
@@ -115,77 +113,29 @@ class AiCategorization {
   }
 }
 
+/// Cross-platform AI client. Calls the `ai-categorize` Supabase Edge
+/// Function so the OpenAI key stays server-side — works identically on
+/// Android, iOS and web (no CORS, no key in the client bundle).
 class AiService {
+  static final _fn = Supabase.instance.client.functions;
+
   /// Analyzes a saved item across every dimension in one structured call.
-  ///
-  /// [text] should be the richest signal available — ideally
-  /// "title — description — transcript — url". [durationSeconds] (when known
-  /// from yt-dlp/metadata) overrides the AI's length guess.
+  /// [durationSeconds] (from yt-dlp/metadata) overrides the AI length guess.
   static Future<AiCategorization?> categorize(
     String text, {
     num? durationSeconds,
   }) async {
-    final apiKey = AppConfig.openAiApiKey;
-    if (apiKey.isEmpty || apiKey == 'your-openai-key' || text.trim().isEmpty) {
-      return null;
-    }
-
-    final system = '''
-You are a precise content-cataloguing AI for a personal "second brain" app.
-Given whatever signal is available about a saved video/link/note (title,
-description, transcript snippets, URL, creator handle), return ONLY a JSON
-object with EXACTLY these keys:
-
-{
-  "primary_category": one of ${jsonEncode(kPrimaryCategories)},
-  "title": short human title (<= 80 chars, no hashtags/emoji spam),
-  "description": one concise sentence describing what it is,
-  "content_type": one of ["link","video","image","text","document"],
-  "length_bucket": one of ["short","medium","long","unknown"],
-  "mood": subset of ${jsonEncode(kMoods)},
-  "intent": subset of ${jsonEncode(kIntents)},
-  "skill_level": one of ["Beginner","Intermediate","Advanced"] or null,
-  "visual_style": one of ${jsonEncode(kVisualStyles)},
-  "creator_type": one of ${jsonEncode(kCreatorTypes)},
-  "language": the human language of the content (e.g. "English"),
-  "topics": 2-6 specific semantic topics (e.g. "high-protein meals","stoic philosophy"),
-  "tags": 3-6 short lowercase keywords
-}
-
-Rules:
-- primary_category MUST be one of the listed values, never invent one.
-- Pick the single best primary_category even if ambiguous.
-- mood/intent are MULTI-label arrays; pick all that genuinely apply (>=1).
-- Infer skill_level only for instructional content, else null.
-- Be specific in topics — they power semantic search.
-- Output strictly valid JSON, no markdown, no commentary.
-''';
-
+    if (text.trim().isEmpty) return null;
     try {
-      final response = await http.post(
-        Uri.parse('https://api.openai.com/v1/chat/completions'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-        body: jsonEncode({
-          'model': 'gpt-4o-mini',
-          'max_tokens': 700,
-          'temperature': 0.2,
-          'response_format': {'type': 'json_object'},
-          'messages': [
-            {'role': 'system', 'content': system},
-            {'role': 'user', 'content': 'Analyze and catalogue this:\n$text'},
-          ],
-        }),
+      final res = await _fn.invoke(
+        'ai-categorize',
+        body: {'action': 'categorize', 'text': text},
       );
+      final data = res.data;
+      if (data is! Map || data['error'] != null) return null;
 
-      if (response.statusCode != 200) return null;
-
-      final body = jsonDecode(response.body);
-      final raw = body['choices'][0]['message']['content'] as String;
-      final json = jsonDecode(raw) as Map<String, dynamic>;
-      final result = AiCategorization.fromJson(json);
+      final result =
+          AiCategorization.fromJson(Map<String, dynamic>.from(data));
 
       // Authoritative duration beats the model's guess.
       if (durationSeconds != null && durationSeconds > 0) {
@@ -214,29 +164,20 @@ Rules:
     }
   }
 
-  /// Generates a 1536-dim embedding (text-embedding-3-small) for semantic
-  /// search. Returns null on any failure so callers degrade to keyword.
+  /// 1536-dim embedding for semantic search. Null on failure → callers
+  /// degrade to keyword search.
   static Future<List<double>?> embed(String text) async {
-    final apiKey = AppConfig.openAiApiKey;
-    if (apiKey.isEmpty || apiKey == 'your-openai-key' || text.trim().isEmpty) {
-      return null;
-    }
+    if (text.trim().isEmpty) return null;
     try {
-      final response = await http.post(
-        Uri.parse('https://api.openai.com/v1/embeddings'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-        body: jsonEncode({
-          'model': 'text-embedding-3-small',
-          'input': text.length > 8000 ? text.substring(0, 8000) : text,
-        }),
+      final res = await _fn.invoke(
+        'ai-categorize',
+        body: {'action': 'embed', 'text': text},
       );
-      if (response.statusCode != 200) return null;
-      final body = jsonDecode(response.body);
-      final emb = body['data'][0]['embedding'] as List;
-      return emb.map((e) => (e as num).toDouble()).toList();
+      final data = res.data;
+      if (data is! Map || data['embedding'] is! List) return null;
+      return (data['embedding'] as List)
+          .map((e) => (e as num).toDouble())
+          .toList();
     } catch (_) {
       return null;
     }

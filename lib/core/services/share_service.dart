@@ -1,4 +1,5 @@
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:async';
 
 /// Wraps a share payload with type info so the UI knows how to present it.
@@ -93,6 +94,10 @@ class ShareService {
   }
 
   static void init() {
+    // Share intents are an Android/iOS-only concept — the plugin has no
+    // web implementation, so skip entirely on web.
+    if (kIsWeb) return;
+
     // Live stream (app already running, share comes in)
     _subscription =
         ReceiveSharingIntent.instance.getMediaStream().listen(_dispatch);
