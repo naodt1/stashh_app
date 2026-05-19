@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/services/supabase_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/auth_errors.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -41,7 +42,7 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       setState(() => _success = true);
     } catch (e) {
-      setState(() { _error = e.toString().replaceAll('Exception: ', ''); });
+      setState(() => _error = authErrorMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

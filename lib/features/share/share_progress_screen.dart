@@ -274,6 +274,12 @@ class _ShareProgressScreenState extends State<ShareProgressScreen> {
     if (mounted) Navigator.of(context).maybePop();
   }
 
+  bool get _isDark =>
+      Theme.of(context).brightness == Brightness.dark;
+  // Accent that stays visible on either theme's card.
+  Color get _accent => _isDark ? Colors.white : AppTheme.black;
+  Color get _onAccent => _isDark ? Colors.black : Colors.white;
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -306,7 +312,7 @@ class _ShareProgressScreenState extends State<ShareProgressScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: AppTheme.black,
+                          color: _accent,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: _saved?.thumbnailUrl != null
@@ -317,14 +323,14 @@ class _ShareProgressScreenState extends State<ShareProgressScreen> {
                                   width: 40,
                                   height: 40,
                                   fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => const Icon(
+                                  errorWidget: (_, __, ___) => Icon(
                                       Icons.bolt,
-                                      color: Colors.white,
+                                      color: _onAccent,
                                       size: 18),
                                 ),
                               )
-                            : const Icon(Icons.bolt,
-                                color: Colors.white, size: 18),
+                            : Icon(Icons.bolt,
+                                color: _onAccent, size: 18),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -427,14 +433,14 @@ class _ShareProgressScreenState extends State<ShareProgressScreen> {
     Widget leading;
     switch (s) {
       case _Step.done:
-        leading = const Icon(Icons.check_circle, size: 22, color: AppTheme.black);
+        leading = Icon(Icons.check_circle, size: 22, color: _accent);
         break;
       case _Step.active:
-        leading = const SizedBox(
+        leading = SizedBox(
           width: 22,
           height: 22,
           child: CircularProgressIndicator(
-              strokeWidth: 2.4, color: AppTheme.black),
+              strokeWidth: 2.4, color: _accent),
         );
         break;
       case _Step.skipped:
@@ -489,18 +495,21 @@ class _ShareProgressScreenState extends State<ShareProgressScreen> {
         height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: filled ? AppTheme.black : Colors.transparent,
+          color: filled ? _accent : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
           border: filled
               ? null
-              : Border.all(color: AppTheme.grey300),
+              : Border.all(
+                  color: _isDark ? Colors.white24 : AppTheme.grey300),
         ),
         child: Text(
           label,
           style: GoogleFonts.spaceGrotesk(
             fontWeight: FontWeight.w700,
             fontSize: 15,
-            color: filled ? Colors.white : AppTheme.textPrimary,
+            color: filled
+                ? _onAccent
+                : (_isDark ? Colors.white : AppTheme.textPrimary),
           ),
         ),
       ),

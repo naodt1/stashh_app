@@ -92,21 +92,18 @@ class _HomeScreenState extends State<HomeScreen> {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _load,
-        color: AppTheme.black,
-        child: CustomScrollView(
-          slivers: [
-            // ── Header ──────────────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top bar
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Sticky header (title + search) ──────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top bar
                       Row(
                         children: [
                           Expanded(
@@ -202,51 +199,58 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ).animate().fadeIn(delay: 100.ms),
-
-                      const SizedBox(height: 24),
-
-                      // Section header: Recent
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Recent',
-                            style: GoogleFonts.spaceGrotesk(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppTheme.textPrimary,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () => context.go('/search'),
-                            style: TextButton.styleFrom(
-                                minimumSize: Size.zero,
-                                padding: EdgeInsets.zero,
-                                tapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap),
-                            child: Text(
-                              'See all',
-                              style: TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ).animate().fadeIn(delay: 200.ms),
-
-                      const SizedBox(height: 12),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ),
 
-            // ── Recent items ────────────────────────────────────────────────
-            _loading
+            // ── Scrollable area (recents only) ──────────────────────────────
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _load,
+                color: AppTheme.black,
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                        child: Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Recent',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppTheme.textPrimary,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => context.go('/search'),
+                              style: TextButton.styleFrom(
+                                  minimumSize: Size.zero,
+                                  padding: EdgeInsets.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap),
+                              child: Text(
+                                'See all',
+                                style: TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // ── Recent items ───────────────────────────────────
+                    _loading
                 ? SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -345,7 +349,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
 
             // Bottom padding
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

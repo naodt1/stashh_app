@@ -397,8 +397,11 @@ class _FolderScreenState extends State<FolderScreen> {
     final textColor = isDark ? Colors.white : AppTheme.textPrimary;
 
     int countFor(Category c) => _counts[c.id] ?? c.itemCount;
-    final pinned = _categories.where((c) => c.pinned).toList();
-    final rest = _categories.where((c) => !c.pinned).toList();
+    // Only show folders that actually contain items.
+    final nonEmpty =
+        _categories.where((c) => countFor(c) > 0).toList();
+    final pinned = nonEmpty.where((c) => c.pinned).toList();
+    final rest = nonEmpty.where((c) => !c.pinned).toList();
 
     return Scaffold(
       body: SafeArea(
@@ -422,7 +425,7 @@ class _FolderScreenState extends State<FolderScreen> {
                                 color: textColor,
                               )),
                           const SizedBox(width: 10),
-                          Text('${_categories.length}',
+                          Text('${nonEmpty.length}',
                               style: const TextStyle(
                                   color: AppTheme.textSecondary,
                                   fontSize: 15)),

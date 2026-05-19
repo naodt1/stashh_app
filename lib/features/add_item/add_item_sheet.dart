@@ -443,11 +443,12 @@ class _AddItemSheetState extends State<AddItemSheet> {
               Container(
                 width: 72,
                 height: 72,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF000000),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white : const Color(0xFF000000),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check, color: Colors.white, size: 36),
+                child: Icon(Icons.check,
+                    color: isDark ? Colors.black : Colors.white, size: 36),
               ),
               const SizedBox(height: 20),
               Text(

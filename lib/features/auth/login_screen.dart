@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/services/supabase_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/auth_errors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (mounted) context.go('/');
     } catch (e) {
-      setState(() { _error = e.toString().replaceAll('Exception: ', ''); });
+      setState(() => _error = authErrorMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

@@ -8,7 +8,7 @@ class SettingsService {
   /// AI categorization — the user never has to tap "Save".
   static Future<bool> getAutoSaveShares() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_kAutoSaveShares) ?? false;
+    return prefs.getBool(_kAutoSaveShares) ?? true; // on by default
   }
 
   static Future<void> setAutoSaveShares(bool value) async {
