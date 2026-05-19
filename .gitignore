@@ -2,6 +2,10 @@
 .env
 *.env
 !.env.example
+# Android release signing — NEVER commit
+android/key.properties
+**/*.jks
+**/*.keystore
 services/ytdlp/*cookies*.txt
 **/ig_cookies.txt
 **/tt_cookies.txt
