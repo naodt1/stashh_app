@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/services/supabase_service.dart';
+import '../../core/services/cluster_service.dart';
+import '../../core/services/settings_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/stash_item.dart';
 import '../../models/category.dart';
@@ -38,16 +40,6 @@ IconData _categoryIcon(String name) {
   }
 }
 
-// Default quick-start folders
-const _defaultCategories = [
-  {'name': 'Work'},
-  {'name': 'Finance'},
-  {'name': 'Health'},
-  {'name': 'Travel'},
-  {'name': 'Inspiration'},
-  {'name': 'Reading'},
-];
-
 class FolderListScreen extends StatelessWidget {
   const FolderListScreen({super.key});
 
@@ -76,6 +68,8 @@ class _FolderScreenState extends State<FolderScreen> {
   List<Collection> _collections = [];
   List<StashItem> _items = [];
   Map<String, int> _smartCounts = {};
+  Map<String, int> _counts = {};
+  ClusterSuggestion? _suggestion;
   bool _loading = true;
 
   bool get _isDetail => widget.categoryId != null;
@@ -104,11 +98,15 @@ class _FolderScreenState extends State<FolderScreen> {
         final cats = await SupabaseService.getCategories();
         final cols = await SupabaseService.getCollections();
         final smart = await resolveActiveSmartCollections();
+        final counts = await SupabaseService.getCategoryCounts();
+        final suggestion = await ClusterService.detect();
         if (mounted) {
           setState(() {
             _categories = cats;
             _collections = cols;
             _smartCounts = smart;
+            _counts = counts;
+            _suggestion = suggestion;
             _loading = false;
           });
         }
@@ -332,442 +330,615 @@ class _FolderScreenState extends State<FolderScreen> {
     );
   }
 
-  Widget _buildListView(bool isDark) {
-    final cardColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
-    final borderColor =
-        isDark ? const Color(0xFF2A2A2A) : AppTheme.cardBorder;
-    final iconColor = isDark ? AppTheme.grey300 : AppTheme.grey700;
+  Future<void> _createFromSuggestion(ClusterSuggestion s) async {
+    final id = await SupabaseService.getOrCreateCategory(s.suggestedName);
+    if (id != null) {
+      await SupabaseService.assignItemsToCategory(s.itemIds, id);
+    }
+    if (mounted) setState(() => _suggestion = null);
+    _load();
+  }
 
-    return Scaffold(
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Row(
-                  children: [
-                    Text(
-                      'Folders',
-                      style: GoogleFonts.spaceGrotesk(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color:
-                            isDark ? Colors.white : AppTheme.textPrimary,
-                      ),
-                    ).animate().fadeIn(duration: 300.ms),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: _showCreateFolder,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white : AppTheme.black,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add,
-                                color: isDark
-                                    ? AppTheme.black
-                                    : Colors.white,
-                                size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              'New',
-                              style: GoogleFonts.spaceGrotesk(
-                                color: isDark
-                                    ? AppTheme.black
-                                    : Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ).animate().fadeIn(delay: 100.ms),
-                  ],
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
+  Future<void> _dismissSuggestion(ClusterSuggestion s) async {
+    await SettingsService.dismissCluster(s.key);
+    if (mounted) setState(() => _suggestion = null);
+  }
 
-            // ── Smart Collections — only the ones the AI has populated ───
-            if (_activeSmart.isNotEmpty) ...[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                  child: Text(
-                    'Smart Collections',
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : AppTheme.textPrimary,
-                    ),
-                  ),
-                ).animate().fadeIn(delay: 120.ms),
+  void _folderActions(Category cat) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            ListTile(
+              leading: Icon(
+                cat.pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                color: isDark ? Colors.white : AppTheme.textPrimary,
               ),
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 92,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _activeSmart.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (context, i) {
-                      final c = _activeSmart[i];
-                      final count = _smartCounts[c.id] ?? 0;
-                      return GestureDetector(
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => CollectionScreen(collection: c),
-                          ),
-                        ),
-                        child: Container(
-                          width: 170,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: borderColor),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            children: [
-                              Icon(c.icon, size: 20, color: iconColor),
-                              Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    c.name,
-                                    style: GoogleFonts.spaceGrotesk(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                      color: isDark
-                                          ? Colors.white
-                                          : AppTheme.textPrimary,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '$count item${count == 1 ? '' : 's'}',
-                                    style: const TextStyle(
-                                        fontSize: 11,
-                                        color: AppTheme.textSecondary),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ).animate().fadeIn(
-                          delay: Duration(milliseconds: 140 + i * 50));
-                    },
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            ],
-
-            // ── User-created collections ─────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                child: Row(
-                  children: [
-                    Text(
-                      'Collections',
-                      style: GoogleFonts.spaceGrotesk(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : AppTheme.textPrimary,
-                      ),
-                    ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: _createCollection,
-                      child: Icon(Icons.add,
-                          size: 20,
-                          color: isDark ? Colors.white : AppTheme.black),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (_collections.isEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                  child: Text(
-                    'Create collections to group items across folders. '
-                    'An item can live in many at once.',
-                    style: TextStyle(
-                        color: AppTheme.textSecondary, fontSize: 12),
-                  ),
-                ),
-              )
-            else
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 50,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _collections.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, i) {
-                      final col = _collections[i];
-                      return GestureDetector(
-                        onTap: () async {
-                          final deleted = await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  UserCollectionScreen(collection: col),
-                            ),
-                          );
-                          if (deleted == true) _load();
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: borderColor),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.collections_bookmark_outlined,
-                                  size: 15, color: iconColor),
-                              const SizedBox(width: 6),
-                              Text(
-                                col.name,
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppTheme.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text('${col.itemCount}',
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.textSecondary)),
-                            ],
-                          ),
-                        ),
-                      ).animate().fadeIn(
-                          delay: Duration(milliseconds: 60 * i));
-                    },
-                  ),
-                ),
-              ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                child: Text(
-                  'Your Folders',
+              title: Text(cat.pinned ? 'Unpin folder' : 'Pin folder',
                   style: GoogleFonts.spaceGrotesk(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : AppTheme.textPrimary,
-                  ),
-                ),
-              ),
+                      color: isDark ? Colors.white : AppTheme.textPrimary)),
+              onTap: () async {
+                Navigator.pop(context);
+                await SupabaseService.setCategoryPinned(
+                    cat.id, !cat.pinned);
+                _load();
+              },
             ),
-
-            if (_loading)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                sliver: SliverGrid(
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    mainAxisExtent: 110,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => Container(
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: borderColor),
-                      ),
-                    ),
-                    childCount: 6,
-                  ),
-                ),
-              )
-            else if (_categories.isEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                  child: _buildDefaultCategories(
-                      isDark, cardColor, borderColor, iconColor),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                sliver: SliverGrid(
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    mainAxisExtent: 110,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) {
-                      if (i >= _categories.length) return null;
-                      final cat = _categories[i];
-                      return GestureDetector(
-                        onTap: () =>
-                            context.push('/folder/${cat.id}', extra: cat),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: borderColor),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(_categoryIcon(cat.name),
-                                  size: 22, color: iconColor),
-                              const Spacer(),
-                              Text(
-                                cat.name,
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppTheme.textPrimary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${cat.itemCount} items',
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppTheme.textSecondary),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ).animate().fadeIn(
-                          delay: Duration(milliseconds: i * 60));
-                    },
-                    childCount: _categories.length,
-                  ),
-                ),
-              ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title: const Text('Delete folder',
+                  style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Navigator.pop(context);
+                await SupabaseService.deleteCategory(cat.id);
+                _load();
+              },
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDefaultCategories(
-      bool isDark, Color cardColor, Color borderColor, Color iconColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick start with these folders:',
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-        ),
-        const SizedBox(height: 12),
-        GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            mainAxisExtent: 110,
-          ),
-          itemCount: _defaultCategories.length,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemBuilder: (_, idx) {
-            final cat = _defaultCategories[idx];
-            final name = cat['name']!;
-            return GestureDetector(
-              onTap: () async {
-                final user = SupabaseService.currentUser;
-                if (user == null) return;
-                await SupabaseService.createCategory({
-                  'id': const Uuid().v4(),
-                  'user_id': user.id,
-                  'name': name,
-                  'icon': 'folder',
-                  'color': '#000000',
-                  'item_count': 0,
-                });
-                _load();
-              },
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: borderColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(_categoryIcon(name), size: 22, color: iconColor),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            name,
-                            style: GoogleFonts.spaceGrotesk(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppTheme.textPrimary,
+  Widget _buildListView(bool isDark) {
+    final cardColor = isDark ? const Color(0xFF1A1A1A) : Colors.white;
+    final borderColor =
+        isDark ? const Color(0xFF2A2A2A) : AppTheme.cardBorder;
+    final iconColor = isDark ? AppTheme.grey300 : AppTheme.grey700;
+    final textColor = isDark ? Colors.white : AppTheme.textPrimary;
+
+    int countFor(Category c) => _counts[c.id] ?? c.itemCount;
+    final pinned = _categories.where((c) => c.pinned).toList();
+    final rest = _categories.where((c) => !c.pinned).toList();
+
+    return Scaffold(
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          color: AppTheme.black,
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text('Folders',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: textColor,
+                              )),
+                          const SizedBox(width: 10),
+                          Text('${_categories.length}',
+                              style: const TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontSize: 15)),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: _showCreateFolder,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color:
+                                    isDark ? Colors.white : AppTheme.black,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.add,
+                                      size: 16,
+                                      color: isDark
+                                          ? AppTheme.black
+                                          : Colors.white),
+                                  const SizedBox(width: 4),
+                                  Text('New',
+                                      style: GoogleFonts.spaceGrotesk(
+                                        color: isDark
+                                            ? AppTheme.black
+                                            : Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      )),
+                                ],
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        Icon(Icons.add,
-                            size: 15, color: AppTheme.textSecondary),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'AI sorts new saves automatically. You can override anything.',
+                        style: TextStyle(
+                            color: AppTheme.textSecondary, fontSize: 13),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
-            );
-          },
+
+              if (_suggestion != null)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.auto_awesome,
+                                  size: 14,
+                                  color: AppTheme.textSecondary),
+                              const SizedBox(width: 6),
+                              Text('SMART CLUSTER · NEW',
+                                  style: GoogleFonts.spaceGrotesk(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.1,
+                                    color: AppTheme.textSecondary,
+                                  )),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text.rich(
+                            TextSpan(
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.4,
+                                  color: textColor),
+                              children: [
+                                TextSpan(
+                                    text:
+                                        "You've saved ${_suggestion!.count} items that look related. "),
+                                const TextSpan(text: 'Make a folder '),
+                                TextSpan(
+                                  text: '"${_suggestion!.suggestedName}"',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700),
+                                ),
+                                const TextSpan(text: '?'),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () =>
+                                    _createFromSuggestion(_suggestion!),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.black,
+                                    borderRadius:
+                                        BorderRadius.circular(10),
+                                  ),
+                                  child: Text('Create folder',
+                                      style: GoogleFonts.spaceGrotesk(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13)),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              GestureDetector(
+                                onTap: () =>
+                                    _dismissSuggestion(_suggestion!),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    borderRadius:
+                                        BorderRadius.circular(10),
+                                    border:
+                                        Border.all(color: borderColor),
+                                  ),
+                                  child: Text('Not now',
+                                      style: GoogleFonts.spaceGrotesk(
+                                          color: AppTheme.textSecondary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              if (pinned.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                    child: Row(
+                      children: [
+                        Text('PINNED',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                              color: AppTheme.textSecondary,
+                            )),
+                        const Spacer(),
+                        Text('${pinned.length}',
+                            style: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 132,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: pinned.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(width: 12),
+                      itemBuilder: (context, i) {
+                        final c = pinned[i];
+                        return GestureDetector(
+                          onTap: () => context
+                              .push('/folder/${c.id}', extra: c),
+                          onLongPress: () => _folderActions(c),
+                          child: Container(
+                            width: 180,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A1A1A),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(_categoryIcon(c.name),
+                                        size: 18,
+                                        color: Colors.white70),
+                                    const Spacer(),
+                                    const Icon(Icons.push_pin,
+                                        size: 14,
+                                        color: Colors.white54),
+                                  ],
+                                ),
+                                const Spacer(),
+                                Text('${countFor(c)}',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    )),
+                                const SizedBox(height: 2),
+                                Text(c.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.spaceGrotesk(
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    )),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 22)),
+              ],
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: Text('ALL FOLDERS',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        color: AppTheme.textSecondary,
+                      )),
+                ),
+              ),
+              if (_loading)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.textSecondary),
+                    ),
+                  ),
+                )
+              else if (rest.isEmpty && pinned.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Text(
+                      'No folders yet. Save something — the AI files it automatically.',
+                      style: TextStyle(
+                          color: AppTheme.textSecondary, fontSize: 13),
+                    ),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) {
+                      if (i >= rest.length) return null;
+                      final c = rest[i];
+                      return Padding(
+                        padding:
+                            const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                        child: GestureDetector(
+                          onTap: () =>
+                              context.push('/folder/${c.id}', extra: c),
+                          onLongPress: () => _folderActions(c),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF2A2A2A)
+                                        : AppTheme.grey100,
+                                    borderRadius:
+                                        BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(_categoryIcon(c.name),
+                                      size: 18, color: iconColor),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(c.name,
+                                          style:
+                                              GoogleFonts.spaceGrotesk(
+                                            fontWeight:
+                                                FontWeight.w600,
+                                            fontSize: 15,
+                                            color: textColor,
+                                          )),
+                                      const SizedBox(height: 2),
+                                      Text('${countFor(c)} items',
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppTheme
+                                                  .textSecondary)),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right,
+                                    color: AppTheme.textSecondary,
+                                    size: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: rest.length,
+                  ),
+                ),
+
+              if (_activeSmart.isNotEmpty) ...[
+                const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                    child: Text('SMART COLLECTIONS',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                          color: AppTheme.textSecondary,
+                        )),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 92,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: _activeSmart.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(width: 10),
+                      itemBuilder: (context, i) {
+                        final c = _activeSmart[i];
+                        final cnt = _smartCounts[c.id] ?? 0;
+                        return GestureDetector(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  CollectionScreen(collection: c),
+                            ),
+                          ),
+                          child: Container(
+                            width: 170,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Icon(c.icon,
+                                    size: 20, color: iconColor),
+                                Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(c.name,
+                                        maxLines: 1,
+                                        overflow:
+                                            TextOverflow.ellipsis,
+                                        style:
+                                            GoogleFonts.spaceGrotesk(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                          color: textColor,
+                                        )),
+                                    const SizedBox(height: 2),
+                                    Text('$cnt items',
+                                        style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppTheme
+                                                .textSecondary)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+
+              if (_collections.isNotEmpty) ...[
+                const SliverToBoxAdapter(child: SizedBox(height: 18)),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                    child: Row(
+                      children: [
+                        Text('COLLECTIONS',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                              color: AppTheme.textSecondary,
+                            )),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: _createCollection,
+                          child: Icon(Icons.add,
+                              size: 18,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppTheme.black),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 44,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: _collections.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(width: 8),
+                      itemBuilder: (context, i) {
+                        final col = _collections[i];
+                        return GestureDetector(
+                          onTap: () async {
+                            final deleted =
+                                await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => UserCollectionScreen(
+                                    collection: col),
+                              ),
+                            );
+                            if (deleted == true) _load();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                    Icons
+                                        .collections_bookmark_outlined,
+                                    size: 15,
+                                    color: iconColor),
+                                const SizedBox(width: 6),
+                                Text(col.name,
+                                    style: GoogleFonts.spaceGrotesk(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: textColor,
+                                    )),
+                                const SizedBox(width: 6),
+                                Text('${col.itemCount}',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme
+                                            .textSecondary)),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 }

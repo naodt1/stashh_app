@@ -75,6 +75,54 @@ class SupabaseService {
     return (data as List).map((e) => Category.fromJson(e)).toList();
   }
 
+  /// Real per-folder item counts (category_id → count). The stored
+  /// item_count column is unreliable, so we tally live.
+  static Future<Map<String, int>> getCategoryCounts() async {
+    final user = currentUser;
+    if (user == null) return {};
+    final data = await _client
+        .from('stash_items')
+        .select('category_id')
+        .eq('user_id', user.id)
+        .not('category_id', 'is', null);
+    final counts = <String, int>{};
+    for (final row in data as List) {
+      final cid = row['category_id'] as String?;
+      if (cid != null) counts[cid] = (counts[cid] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  static Future<void> setCategoryPinned(String id, bool pinned) async {
+    await _client.from('categories').update({
+      'pinned': pinned,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  /// Items not yet filed into a folder — the raw material for
+  /// AI smart-cluster suggestions.
+  static Future<List<StashItem>> getUncategorizedItems({int limit = 200}) async {
+    final user = currentUser;
+    if (user == null) return [];
+    final data = await _client
+        .from('stash_items')
+        .select()
+        .eq('user_id', user.id)
+        .isFilter('category_id', null)
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return (data as List).map((e) => StashItem.fromJson(e)).toList();
+  }
+
+  static Future<void> assignItemsToCategory(
+      List<String> itemIds, String categoryId) async {
+    if (itemIds.isEmpty) return;
+    await _client
+        .from('stash_items')
+        .update({'category_id': categoryId}).inFilter('id', itemIds);
+  }
+
   static Future<Category> createCategory(Map<String, dynamic> data) async {
     final result = await _client
         .from('categories')

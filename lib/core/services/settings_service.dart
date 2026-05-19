@@ -15,4 +15,18 @@ class SettingsService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kAutoSaveShares, value);
   }
+
+  static const _kDismissedClusters = 'dismissed_clusters';
+
+  static Future<Set<String>> getDismissedClusters() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getStringList(_kDismissedClusters) ?? const []).toSet();
+  }
+
+  static Future<void> dismissCluster(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final set = (prefs.getStringList(_kDismissedClusters) ?? const []).toSet()
+      ..add(key);
+    await prefs.setStringList(_kDismissedClusters, set.toList());
+  }
 }
