@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../config/app_config.dart';
 
 /// Open Graph / page metadata pulled from a shared URL.
 class LinkMetadata {
@@ -35,6 +36,21 @@ class LinkMetadata {
 }
 
 class MetadataService {
+  /// Fire-and-forget ping to wake the (free-tier) yt-dlp container so it's
+  /// warm by the time extraction runs. Safe to call repeatedly; never
+  /// throws and never blocks the UI.
+  static void prewarm() {
+    final url = AppConfig.ytdlpHealthUrl;
+    if (url.isEmpty) return;
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    // Short timeout, errors swallowed — this is best-effort.
+    http.get(uri).timeout(
+          const Duration(seconds: 4),
+          onTimeout: () => http.Response('', 408),
+        ).catchError((_) => http.Response('', 0));
+  }
+
   /// Resolves link metadata. Strategy:
   ///   1. Server-side `extract-metadata` Edge Function — handles the hard
   ///      cases (Instagram / TikTok login wall) via oEmbed + yt-dlp.

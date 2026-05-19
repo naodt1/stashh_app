@@ -90,6 +90,8 @@ class _AddItemSheetState extends State<AddItemSheet> {
     // has run — otherwise the setState storm janks the entrance.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      // Wake the yt-dlp container now so it's warm by extraction time.
+      MetadataService.prewarm();
       if (widget.sharePayload != null) {
         _initFromPayload(widget.sharePayload!);
         SettingsService.getAutoSaveShares().then((v) {
