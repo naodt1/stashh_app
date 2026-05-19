@@ -57,18 +57,14 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 48),
-                // Logo mark
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white : AppTheme.black,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    Icons.inventory_2_outlined,
-                    color: isDark ? AppTheme.black : Colors.white,
-                    size: 26,
+                // Logo mark — app icon in a squircle
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/play_store_512.png',
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
                   ),
                 ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
                 const SizedBox(height: 32),
