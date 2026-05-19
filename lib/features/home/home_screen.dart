@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/supabase_service.dart';
-import '../../core/services/share_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/stash_item.dart';
 import '../../models/profile.dart';
@@ -27,13 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _load();
-    ShareService.onShareReceived = _handleShare;
-  }
-
-  @override
-  void dispose() {
-    ShareService.onShareReceived = null;
-    super.dispose();
   }
 
   Future<void> _load() async {
@@ -64,15 +56,6 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  void _handleShare(SharePayload payload) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => AddItemSheet(sharePayload: payload),
-    ).then((_) => _load());
   }
 
   void _openAdd() {

@@ -6,6 +6,7 @@ import 'config/app_config.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/share_service.dart';
+import 'features/share/share_progress_screen.dart';
 import 'providers/theme_provider.dart';
 
 void main() async {
@@ -36,16 +37,43 @@ class StashApp extends StatefulWidget {
 }
 
 class _StashAppState extends State<StashApp> {
+  bool _shareCardOpen = false;
+
   @override
   void initState() {
     super.initState();
     ShareService.init();
+    ShareService.onShareReceived = _onShare;
   }
 
   @override
   void dispose() {
+    ShareService.onShareReceived = null;
     ShareService.dispose();
     super.dispose();
+  }
+
+  void _onShare(SharePayload payload) {
+    void present() {
+      final nav = rootNavigatorKey.currentState;
+      if (nav == null) {
+        // Navigator not ready yet (cold start) — retry next frame.
+        WidgetsBinding.instance.addPostFrameCallback((_) => present());
+        return;
+      }
+      if (_shareCardOpen) return;
+      _shareCardOpen = true;
+      nav
+          .push(PageRouteBuilder(
+            opaque: false,
+            barrierColor: Colors.transparent,
+            pageBuilder: (_, __, ___) =>
+                ShareProgressScreen(payload: payload),
+          ))
+          .then((_) => _shareCardOpen = false);
+    }
+
+    present();
   }
 
   @override

@@ -12,7 +12,7 @@ import '../../features/add_item/add_item_sheet.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../models/category.dart';
 
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 // Cached synchronously after await initRouter() in main.dart
@@ -29,7 +29,7 @@ void markOnboardingComplete() {
 }
 
 final appRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/',
   redirect: (context, state) {
     final user = Supabase.instance.client.auth.currentUser;
