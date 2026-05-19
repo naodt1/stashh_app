@@ -114,17 +114,119 @@ class StashItemCard extends StatelessWidget {
     );
   }
 
+  String? get _platformShort {
+    final p = item.platform?.toLowerCase();
+    if (p == null) return null;
+    if (p.contains('tiktok')) return 'tt';
+    if (p.contains('youtube')) return 'yt';
+    if (p.contains('instagram')) return 'ig';
+    if (p.contains('pinterest')) return 'pin';
+    if (p == 'x' || p.contains('twitter')) return 'x';
+    if (p.contains('facebook')) return 'fb';
+    if (p.contains('reddit')) return 're';
+    return p.length <= 3 ? p : p.substring(0, 2);
+  }
+
+  String get _subtitle {
+    if (item.url != null) {
+      final host = Uri.tryParse(item.url!)?.host.replaceFirst('www.', '');
+      if (host != null && host.isNotEmpty) return host;
+    }
+    if (item.rawContent != null && item.rawContent!.isNotEmpty) return 'Note';
+    return item.platform ?? 'Saved';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final iconBg = isDark ? const Color(0xFF2A2A2A) : AppTheme.grey100;
     final iconColor = isDark ? AppTheme.grey300 : AppTheme.grey700;
+    final thumbBg = isDark ? const Color(0xFF2A2A2A) : AppTheme.grey100;
+    final chipBg = isDark ? const Color(0xFF2A2A2A) : AppTheme.grey100;
+    final hasThumbnail =
+        item.thumbnailUrl != null && item.thumbnailUrl!.isNotEmpty;
 
-    final hasThumbnail = item.thumbnailUrl != null && item.thumbnailUrl!.isNotEmpty;
+    final thumb = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 100,
+        height: 116,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (hasThumbnail)
+              CachedNetworkImage(
+                imageUrl: item.thumbnailUrl!,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(color: thumbBg),
+                errorWidget: (_, __, ___) => Container(
+                  color: thumbBg,
+                  child: Icon(_typeIcon, color: iconColor, size: 28),
+                ),
+              )
+            else
+              Container(
+                color: thumbBg,
+                child: Icon(_typeIcon, color: iconColor, size: 28),
+              ),
+            if (item.contentType == 'video')
+              Center(
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.play_arrow_rounded,
+                      color: Colors.white, size: 20),
+                ),
+              ),
+            if (_platformShort != null)
+              Positioned(
+                left: 6,
+                bottom: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.65),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _platformShort!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    Widget tagChip(String label) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: chipBg,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? AppTheme.grey300 : AppTheme.grey700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
 
     return GestureDetector(
       onTap: item.url != null ? _openUrl : null,
       onLongPress: () => _showActions(context),
       child: Container(
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -132,171 +234,76 @@ class StashItemCard extends StatelessWidget {
             color: isDark ? const Color(0xFF2A2A2A) : AppTheme.cardBorder,
           ),
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Thumbnail banner ─────────────────────────────────────────
-            if (hasThumbnail)
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CachedNetworkImage(
-                      imageUrl: item.thumbnailUrl!,
-                      height: 160,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(
-                        height: 160,
-                        color: isDark
-                            ? const Color(0xFF2A2A2A)
-                            : AppTheme.grey100,
-                      ),
-                      errorWidget: (_, __, ___) => Container(
-                        height: 160,
-                        color: isDark
-                            ? const Color(0xFF2A2A2A)
-                            : AppTheme.grey100,
-                        child: Icon(_typeIcon, color: iconColor, size: 32),
-                      ),
-                    ),
-                    if (item.contentType == 'video')
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-            // ── Content row ──────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
+            thumb,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Type icon — only shown when there's no thumbnail
-                  if (!hasThumbnail) ...[
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: iconBg,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(_typeIcon, color: iconColor, size: 18),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            if (item.isPinned) ...[
-                              Icon(Icons.push_pin, size: 12,
-                                  color: isDark ? AppTheme.grey300 : AppTheme.grey700),
-                              const SizedBox(width: 4),
-                            ],
-                            Expanded(
-                              child: Text(
-                                item.title,
-                                style: GoogleFonts.spaceGrotesk(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                  color: isDark ? Colors.white : AppTheme.textPrimary,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (item.description != null &&
-                            item.description!.isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            item.description!,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.textSecondary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        if (item.url != null) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            Uri.tryParse(item.url!)?.host ?? item.url!,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.grey500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            if (item.tags.isNotEmpty) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF2A2A2A)
-                                      : AppTheme.grey100,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  item.tags.first,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: AppTheme.textSecondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              if (item.tags.length > 1) ...[
-                                const SizedBox(width: 4),
-                                Text(
-                                  '+${item.tags.length - 1}',
-                                  style: const TextStyle(
-                                      fontSize: 10, color: AppTheme.textSecondary),
-                                ),
-                              ],
-                              const SizedBox(width: 8),
-                            ],
-                            Text(
-                              timeago.format(item.createdAt),
-                              style: const TextStyle(
-                                  fontSize: 11, color: AppTheme.textSecondary),
-                            ),
-                          ],
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (item.isPinned) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2, right: 4),
+                          child: Icon(Icons.push_pin,
+                              size: 13,
+                              color: isDark
+                                  ? AppTheme.grey300
+                                  : AppTheme.grey700),
                         ),
                       ],
-                    ),
+                      Expanded(
+                        child: Text(
+                          item.title,
+                          style: GoogleFonts.spaceGrotesk(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            height: 1.25,
+                            color:
+                                isDark ? Colors.white : AppTheme.textPrimary,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                  GestureDetector(
-                    onTap: () => _showActions(context),
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Icon(Icons.more_vert,
-                          size: 18, color: AppTheme.textSecondary),
-                    ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '$_subtitle · ${timeago.format(item.createdAt)}',
+                    style: const TextStyle(
+                        fontSize: 12, color: AppTheme.textSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      ...item.tags.take(2).map(tagChip),
+                      if (item.primaryCategory != null &&
+                          item.primaryCategory!.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.folder_outlined,
+                                size: 13, color: AppTheme.textSecondary),
+                            const SizedBox(width: 4),
+                            Text(
+                              item.primaryCategory!,
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.textSecondary),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
                 ],
               ),
@@ -306,4 +313,5 @@ class StashItemCard extends StatelessWidget {
       ),
     );
   }
+
 }

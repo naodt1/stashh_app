@@ -21,7 +21,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Profile? _profile;
   List<StashItem> _recentItems = [];
   Map<String, int> _typeCounts = {};
-  int _totalCount = 0;
   bool _loading = true;
 
   @override
@@ -59,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _profile = profile;
           _recentItems = recent;
           _typeCounts = counts;
-          _totalCount = all.length;
           _loading = false;
         });
       }
@@ -222,16 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ).animate().fadeIn(delay: 100.ms),
 
-                      const SizedBox(height: 20),
-
-                      // Hero stats card
-                      _HeroCard(
-                        totalCount: _totalCount,
-                        streakDays: _profile?.streakDays ?? 0,
-                        onAddTap: _openAdd,
-                      ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.1),
-
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 24),
 
                       // Section header: Recent
                       Row(
@@ -377,115 +366,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ── Hero card ────────────────────────────────────────────────────────────────
-
-class _HeroCard extends StatelessWidget {
-  final int totalCount;
-  final int streakDays;
-  final VoidCallback onAddTap;
-
-  const _HeroCard({
-    required this.totalCount,
-    required this.streakDays,
-    required this.onAddTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'YOUR STASH',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white54,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: onAddTap,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.add, color: Colors.white, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Add',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              _StatItem(
-                  value: totalCount.toString(), label: 'Items saved'),
-              const SizedBox(width: 40),
-              _StatItem(
-                  value: '${streakDays}d', label: 'Streak'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  final String value;
-  final String label;
-  const _StatItem({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: GoogleFonts.spaceGrotesk(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white54, fontSize: 12),
-        ),
-      ],
     );
   }
 }
