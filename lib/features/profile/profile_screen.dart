@@ -390,7 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 trailing: Icon(Icons.chevron_right,
                     color: AppTheme.textSecondary),
                 onTap: () => _openUrl(
-                    'mailto:feedback@stashh.app?subject=Stashh%20feedback'),
+                    'mailto:business@naodtadele.com?subject=Stashh%20feedback'),
               ),
               const SizedBox(height: 8),
               _SettingsTile(
@@ -399,7 +399,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 isDark: isDark,
                 trailing: Icon(Icons.chevron_right,
                     color: AppTheme.textSecondary),
-                onTap: () => _openUrl('https://stashh.app/privacy'),
+                onTap: () => _openUrl(
+                    'https://naodt1.github.io/stashh_app/privacy-policy.html'),
               ),
               const SizedBox(height: 8),
               _SettingsTile(

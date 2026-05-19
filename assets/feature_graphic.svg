@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <rect width="1024" height="500" fill="#000000"/>
+
+  <!-- App mark: rounded square with archive glyph -->
+  <g transform="translate(96 170)">
+    <rect width="160" height="160" rx="40" fill="#FFFFFF"/>
+    <g transform="translate(40 40)" fill="none" stroke="#000000" stroke-width="7"
+       stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="14" width="74" height="58" rx="6"/>
+      <path d="M0 14 L80 14 M28 34 L52 34"/>
+    </g>
+  </g>
+
+  <!-- Wordmark + tagline -->
+  <text x="320" y="240" font-family="Helvetica, Arial, sans-serif"
+        font-size="92" font-weight="700" fill="#FFFFFF">Stashh</text>
+  <text x="322" y="300" font-family="Helvetica, Arial, sans-serif"
+        font-size="30" font-weight="400" fill="#9A9A9A">Your AI second brain for saved videos &amp; links</text>
+</svg>
