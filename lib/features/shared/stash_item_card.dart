@@ -8,6 +8,7 @@ import '../../core/services/supabase_service.dart';
 import '../../models/stash_item.dart';
 import '../collection/add_to_collection_sheet.dart';
 import '../detail/item_detail_screen.dart';
+import '../../core/utils/haptics.dart';
 
 class StashItemCard extends StatelessWidget {
   final StashItem item;
@@ -245,12 +246,18 @@ class StashItemCard extends StatelessWidget {
         );
 
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ItemDetailScreen(item: item),
-        ),
-      ),
-      onLongPress: () => _showActions(context),
+      onTap: () {
+        Haptics.tap();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ItemDetailScreen(item: item),
+          ),
+        );
+      },
+      onLongPress: () {
+        Haptics.impact();
+        _showActions(context);
+      },
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(

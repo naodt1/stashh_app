@@ -3,8 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/supabase_service.dart';
 import '../../core/services/settings_service.dart';
+import '../../core/utils/haptics.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/profile.dart';
 import '../../providers/theme_provider.dart';
@@ -22,6 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   int _itemCount = 0;
   bool _autoSaveShares = false;
+  bool _haptics = true;
 
   @override
   void initState() {
@@ -29,6 +32,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _load();
     SettingsService.getAutoSaveShares()
         .then((v) => mounted ? setState(() => _autoSaveShares = v) : null);
+    SettingsService.getHaptics()
+        .then((v) => mounted ? setState(() => _haptics = v) : null);
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _clearImageCache() {
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Image cache cleared'),
+          duration: Duration(seconds: 2)),
+    );
   }
 
   Future<void> _load() async {
@@ -290,8 +312,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 8),
               _SettingsTile(
+                icon: Icons.vibration,
+                title: 'Haptic feedback',
+                subtitle: 'Subtle vibrations on taps & actions',
+                isDark: isDark,
+                trailing: Switch(
+                  value: _haptics,
+                  onChanged: (v) async {
+                    setState(() => _haptics = v);
+                    Haptics.enabled = v;
+                    await SettingsService.setHaptics(v);
+                    if (v) Haptics.tap();
+                  },
+                  activeColor: isDark ? Colors.white : AppTheme.black,
+                  activeTrackColor:
+                      isDark ? AppTheme.grey700 : AppTheme.grey300,
+                  inactiveThumbColor: AppTheme.grey300,
+                  inactiveTrackColor: AppTheme.grey100,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _SettingsTile(
                 icon: Icons.notifications_outlined,
                 title: 'Notifications',
+                subtitle: 'Push, email & weekly digest',
                 isDark: isDark,
                 trailing: Icon(Icons.chevron_right,
                     color: AppTheme.textSecondary),
@@ -320,66 +364,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: () {},
               ),
 
-              // ── Upgrade to Pro (B&W) ─────────────────────────────────
-              if (_profile?.isPro != true) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white : AppTheme.black,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.bolt,
-                          color: isDark ? AppTheme.black : Colors.white,
-                          size: 22),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Upgrade to Pro',
-                              style: GoogleFonts.spaceGrotesk(
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? AppTheme.black : Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              'Unlimited items · AI categorization',
-                              style: TextStyle(
-                                color: isDark
-                                    ? AppTheme.grey700
-                                    : AppTheme.grey300,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppTheme.black : Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'Upgrade',
-                          style: GoogleFonts.spaceGrotesk(
-                            color: isDark ? Colors.white : AppTheme.black,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ).animate().fadeIn(delay: 200.ms),
-              ],
+              const SizedBox(height: 24),
 
+              // ── Storage ──────────────────────────────────────────────
+              _SectionTitle('Storage', isDark),
+              const SizedBox(height: 8),
+              _SettingsTile(
+                icon: Icons.cleaning_services_outlined,
+                title: 'Clear image cache',
+                subtitle: 'Free up space used by thumbnails',
+                isDark: isDark,
+                trailing: Icon(Icons.chevron_right,
+                    color: AppTheme.textSecondary),
+                onTap: _clearImageCache,
+              ),
               const SizedBox(height: 24),
 
               // ── Support ──────────────────────────────────────────────
@@ -391,7 +389,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 isDark: isDark,
                 trailing: Icon(Icons.chevron_right,
                     color: AppTheme.textSecondary),
-                onTap: () {},
+                onTap: () => _openUrl('https://github.com/naodt1/stashh_app'),
+              ),
+              const SizedBox(height: 8),
+              _SettingsTile(
+                icon: Icons.feedback_outlined,
+                title: 'Send feedback',
+                subtitle: 'Report a bug or request a feature',
+                isDark: isDark,
+                trailing: Icon(Icons.chevron_right,
+                    color: AppTheme.textSecondary),
+                onTap: () => _openUrl(
+                    'mailto:feedback@stashh.app?subject=Stashh%20feedback'),
               ),
               const SizedBox(height: 8),
               _SettingsTile(
@@ -400,7 +409,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 isDark: isDark,
                 trailing: Icon(Icons.chevron_right,
                     color: AppTheme.textSecondary),
-                onTap: () {},
+                onTap: () => _openUrl('https://stashh.app/privacy'),
+              ),
+              const SizedBox(height: 8),
+              _SettingsTile(
+                icon: Icons.info_outline,
+                title: 'About Stashh',
+                subtitle: 'Version 1.0.0',
+                isDark: isDark,
+                trailing: Icon(Icons.chevron_right,
+                    color: AppTheme.textSecondary),
+                onTap: () => showAboutDialog(
+                  context: context,
+                  applicationName: 'Stashh',
+                  applicationVersion: '1.0.0',
+                  applicationLegalese:
+                      'Your AI second brain for saved videos & links.',
+                ),
               ),
               const SizedBox(height: 24),
 

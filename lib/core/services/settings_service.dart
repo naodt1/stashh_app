@@ -16,6 +16,18 @@ class SettingsService {
     await prefs.setBool(_kAutoSaveShares, value);
   }
 
+  static const _kHaptics = 'haptics_enabled';
+
+  static Future<bool> getHaptics() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kHaptics) ?? true; // on by default
+  }
+
+  static Future<void> setHaptics(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kHaptics, value);
+  }
+
   static const _kDismissedClusters = 'dismissed_clusters';
 
   static Future<Set<String>> getDismissedClusters() async {

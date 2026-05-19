@@ -12,6 +12,7 @@ import '../../core/services/settings_service.dart';
 import '../../core/services/share_service.dart';
 import '../../core/services/supabase_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/haptics.dart';
 import '../../core/utils/platform_detect.dart';
 import '../../models/stash_item.dart';
 import '../detail/item_detail_screen.dart';
@@ -239,6 +240,7 @@ class _ShareProgressScreenState extends State<ShareProgressScreen> {
         _saved = saved;
         _done = true;
       });
+      Haptics.success();
 
       if (_autoSave) {
         await Future.delayed(const Duration(milliseconds: 1100));
@@ -479,7 +481,10 @@ class _ShareProgressScreenState extends State<ShareProgressScreen> {
   Widget _btn(String label,
       {required bool filled, required VoidCallback onTap}) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        Haptics.impact();
+        onTap();
+      },
       child: Container(
         height: 48,
         alignment: Alignment.center,

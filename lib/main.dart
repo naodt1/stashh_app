@@ -6,6 +6,7 @@ import 'config/app_config.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/share_service.dart';
+import 'core/utils/haptics.dart';
 import 'features/share/share_progress_screen.dart';
 import 'providers/theme_provider.dart';
 
@@ -17,6 +18,8 @@ void main() async {
     url: AppConfig.supabaseUrl,
     anonKey: AppConfig.supabaseAnonKey,
   );
+
+  await Haptics.load();
 
   // Load onboarding state before router starts
   await initRouter();

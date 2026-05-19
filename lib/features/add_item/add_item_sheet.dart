@@ -10,6 +10,7 @@ import '../../core/services/ai_service.dart';
 import '../../core/services/metadata_service.dart';
 import '../../core/services/share_service.dart';
 import '../../core/services/settings_service.dart';
+import '../../core/utils/haptics.dart';
 import '../../core/utils/platform_detect.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/category.dart';
@@ -298,6 +299,7 @@ class _AddItemSheetState extends State<AddItemSheet> {
   }
 
   Future<void> _save() async {
+    Haptics.impact();
     setState(() { _loading = true; _error = null; });
     try {
       final user = SupabaseService.currentUser;
@@ -386,6 +388,7 @@ class _AddItemSheetState extends State<AddItemSheet> {
         'updated_at': now,
       });
 
+      Haptics.success();
       if (!mounted) return;
 
       if (widget.sharePayload != null) {

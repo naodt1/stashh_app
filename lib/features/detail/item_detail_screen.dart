@@ -128,6 +128,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
             child: Text(
               _item.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,

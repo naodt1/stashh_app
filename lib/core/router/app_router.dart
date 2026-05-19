@@ -11,6 +11,7 @@ import '../../features/profile/profile_screen.dart';
 import '../../features/add_item/add_item_sheet.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../models/category.dart';
+import '../utils/haptics.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -101,6 +102,7 @@ class MainShell extends StatelessWidget {
   }
 
   void _onTap(int index, BuildContext context) {
+    Haptics.tap();
     switch (index) {
       case 0: context.go('/');
       case 1: context.go('/search');
