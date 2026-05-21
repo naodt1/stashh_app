@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// The 15 broad buckets every saved item is forced into (exactly one).
 const kPrimaryCategories = <String>[
   'Fitness & Workouts',
+  'Sports',
   'Recipes & Cooking',
   'Finance & Money',
   'Self-Improvement / Motivation',
@@ -10,6 +11,8 @@ const kPrimaryCategories = <String>[
   'Tech & Gadgets',
   'Education / Tutorials',
   'Comedy / Memes',
+  'Edits',
+  'Animals & Pets',
   'Travel',
   'Home & DIY',
   'Health & Wellness',

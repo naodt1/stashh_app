@@ -6,6 +6,7 @@ class Category {
   final String color;
   final int itemCount;
   final bool pinned;
+  final bool autoCreated; // true = AI auto-filed; false = user made
   final DateTime? updatedAt;
 
   Category({
@@ -16,6 +17,7 @@ class Category {
     required this.color,
     this.itemCount = 0,
     this.pinned = false,
+    this.autoCreated = false,
     this.updatedAt,
   });
 
@@ -28,6 +30,7 @@ class Category {
       color: json['color'] as String? ?? '#000000',
       itemCount: (json['item_count'] as num?)?.toInt() ?? 0,
       pinned: json['pinned'] as bool? ?? false,
+      autoCreated: json['auto_created'] as bool? ?? false,
       updatedAt: json['updated_at'] != null
           ? DateTime.tryParse(json['updated_at'] as String)
           : null,

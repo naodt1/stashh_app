@@ -68,12 +68,45 @@ class _ShareProgressScreenState extends State<ShareProgressScreen> {
     if (mounted) setState(f);
   }
 
+  bool _duplicate = false;
+
   Future<void> _run() async {
     try {
       _autoSave = await SettingsService.getAutoSaveShares();
       final p = widget.payload;
       final isUrl = p.isUrl;
       final content = p.content;
+
+      // ── Duplicate check ────────────────────────────────────────────
+      // If the same URL is already saved, don't create another item —
+      // show "Already saved" and surface the existing one.
+      if (isUrl) {
+        final existing = await SupabaseService.findItemByUrl(content);
+        if (existing != null) {
+          _set(() {
+            _sourceLine = existing.platform ??
+                Uri.tryParse(content)?.host ??
+                'Link';
+            _fetch = _Step.done;
+            _fetchMeta = 'already saved';
+            _transcribe = _Step.skipped;
+            _embed = _Step.skipped;
+            _file = _Step.skipped;
+            _folderMeta = existing.primaryCategory;
+            _saved = existing;
+            _done = true;
+            _duplicate = true;
+          });
+          Haptics.tap();
+          if (_autoSave) {
+            await Future.delayed(const Duration(milliseconds: 1600));
+            if (mounted) Navigator.of(context).maybePop();
+            if (!kIsWeb) await SystemNavigator.pop();
+          }
+          return;
+        }
+      }
+
       final itemId = const Uuid().v4();
 
       String title = '';
@@ -340,9 +373,11 @@ class _ShareProgressScreenState extends State<ShareProgressScreen> {
                             Text(
                               _failed
                                   ? 'Couldn\'t save'
-                                  : _done
-                                      ? 'Saved to Stashh'
-                                      : 'Saving to Stashh',
+                                  : _duplicate
+                                      ? 'Already in Stashh'
+                                      : _done
+                                          ? 'Saved to Stashh'
+                                          : 'Saving to Stashh',
                               style: GoogleFonts.spaceGrotesk(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 16,

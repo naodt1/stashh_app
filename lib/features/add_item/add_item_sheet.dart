@@ -65,6 +65,7 @@ class _AddItemSheetState extends State<AddItemSheet> {
   bool _loading = false;
   bool _aiLoading = false;
   bool _saved = false;
+  bool _duplicate = false;
   bool _showDetails = false;
   String? _error;
 
@@ -308,6 +309,27 @@ class _AddItemSheetState extends State<AddItemSheet> {
       final content = _rawContent;
       final isUrl = content.startsWith('http://') || content.startsWith('https://');
 
+      // ── Duplicate guard ────────────────────────────────────────────
+      if (isUrl) {
+        final existing = await SupabaseService.findItemByUrl(content);
+        if (existing != null) {
+          setState(() {
+            _duplicate = true;
+            _saved = true;
+            _loading = false;
+          });
+          if (widget.sharePayload != null) {
+            await Future.delayed(const Duration(milliseconds: 1400));
+            if (mounted) Navigator.of(context).pop(true);
+            if (!kIsWeb) await SystemNavigator.pop();
+          } else {
+            await Future.delayed(const Duration(milliseconds: 1200));
+            if (mounted) Navigator.of(context).pop(true);
+          }
+          return;
+        }
+      }
+
       // Title fallback — never show the raw URL. Prefer the host name.
       String title = _title.trim();
       if (title.isEmpty) {
@@ -447,12 +469,13 @@ class _AddItemSheetState extends State<AddItemSheet> {
                   color: isDark ? Colors.white : const Color(0xFF000000),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.check,
+                child: Icon(
+                    _duplicate ? Icons.bookmark_added : Icons.check,
                     color: isDark ? Colors.black : Colors.white, size: 36),
               ),
               const SizedBox(height: 20),
               Text(
-                'Saved to Stashh',
+                _duplicate ? 'Already in Stashh' : 'Saved to Stashh',
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -461,7 +484,9 @@ class _AddItemSheetState extends State<AddItemSheet> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Taking you back…',
+                _duplicate
+                    ? 'This link was already saved.'
+                    : 'Taking you back…',
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 14,
                   color: subColor,
@@ -1052,28 +1077,54 @@ class _AiStatusChip extends StatelessWidget {
 // ── Folder picker ────────────────────────────────────────────────────────────
 
 // Maps a folder name to a Material icon (no emojis — B&W design).
+// Substring matching so full AI bucket names like "Fitness & Workouts" work.
 IconData _folderIconFor(String name) {
-  switch (name.toLowerCase()) {
-    case 'food':
-    case 'recipes':     return Icons.restaurant_outlined;
-    case 'finance':
-    case 'money':       return Icons.account_balance_wallet_outlined;
-    case 'work':        return Icons.work_outline;
-    case 'inspiration': return Icons.lightbulb_outline;
-    case 'health':      return Icons.favorite_outline;
-    case 'fitness':     return Icons.fitness_center_outlined;
-    case 'travel':      return Icons.flight_outlined;
-    case 'reading':
-    case 'books':       return Icons.menu_book_outlined;
-    case 'music':       return Icons.music_note_outlined;
-    case 'art':
-    case 'design':      return Icons.palette_outlined;
-    case 'home':        return Icons.home_outlined;
-    case 'tech':        return Icons.memory_outlined;
-    case 'shopping':    return Icons.shopping_bag_outlined;
-    case 'social':      return Icons.people_outline;
-    default:            return Icons.folder_outlined;
+  final n = name.toLowerCase();
+  if (n.contains('fitness') || n.contains('gym') || n.contains('workout')) {
+    return Icons.fitness_center_outlined;
   }
+  if (n.contains('sport')) return Icons.sports_soccer_outlined;
+  if (n.contains('recipe') || n.contains('cook') || n.contains('food')) {
+    return Icons.restaurant_outlined;
+  }
+  if (n.contains('finance') || n.contains('money')) {
+    return Icons.account_balance_wallet_outlined;
+  }
+  if (n.contains('inspiration') || n.contains('motivation') ||
+      n.contains('self-improvement')) {
+    return Icons.lightbulb_outline;
+  }
+  if (n.contains('fashion') || n.contains('beauty')) {
+    return Icons.checkroom_outlined;
+  }
+  if (n.contains('tech') || n.contains('gadget')) return Icons.memory_outlined;
+  if (n.contains('education') || n.contains('tutorial')) {
+    return Icons.school_outlined;
+  }
+  if (n.contains('comedy') || n.contains('meme')) {
+    return Icons.sentiment_very_satisfied_outlined;
+  }
+  if (n.contains('edit')) return Icons.movie_filter_outlined;
+  if (n.contains('animal') || n.contains('pet')) return Icons.pets;
+  if (n.contains('travel')) return Icons.flight_outlined;
+  if (n.contains('home') || n.contains('diy')) return Icons.home_outlined;
+  if (n.contains('health') || n.contains('wellness')) {
+    return Icons.favorite_outline;
+  }
+  if (n.contains('business') || n.contains('entrepreneur') ||
+      n.contains('work')) {
+    return Icons.work_outline;
+  }
+  if (n.contains('entertainment')) return Icons.movie_outlined;
+  if (n.contains('news')) return Icons.newspaper_outlined;
+  if (n.contains('reading') || n.contains('books')) {
+    return Icons.menu_book_outlined;
+  }
+  if (n.contains('music')) return Icons.music_note_outlined;
+  if (n.contains('art') || n.contains('design')) return Icons.palette_outlined;
+  if (n.contains('shopping')) return Icons.shopping_bag_outlined;
+  if (n.contains('social')) return Icons.people_outline;
+  return Icons.folder_outlined;
 }
 
 class _FolderPicker extends StatelessWidget {

@@ -16,11 +16,12 @@ const cors = {
 };
 
 const PRIMARY = [
-  "Fitness & Workouts", "Recipes & Cooking", "Finance & Money",
+  "Fitness & Workouts", "Sports", "Recipes & Cooking", "Finance & Money",
   "Self-Improvement / Motivation", "Fashion & Beauty", "Tech & Gadgets",
-  "Education / Tutorials", "Comedy / Memes", "Travel", "Home & DIY",
-  "Health & Wellness", "Business & Entrepreneurship", "Entertainment",
-  "News & Current Events", "Other / Miscellaneous",
+  "Education / Tutorials", "Comedy / Memes", "Edits", "Animals & Pets",
+  "Travel", "Home & DIY", "Health & Wellness",
+  "Business & Entrepreneurship", "Entertainment", "News & Current Events",
+  "Other / Miscellaneous",
 ];
 const MOODS = ["Motivational", "Relaxing", "Intense", "Funny", "Informative", "Emotional"];
 const INTENTS = ["Learn", "Inspire", "Entertain", "Shop", "Remember", "Humor"];

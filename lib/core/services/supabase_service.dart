@@ -159,10 +159,27 @@ class SupabaseService {
           'icon': 'folder',
           'color': '#000000',
           'item_count': 0,
+          'auto_created': true, // AI auto-fil created this
         })
         .select('id')
         .single();
     return created['id'] as String;
+  }
+
+  /// Find an existing saved item by URL for the current user. Used to
+  /// prevent duplicate saves when sharing the same link twice.
+  static Future<StashItem?> findItemByUrl(String url) async {
+    final user = currentUser;
+    if (user == null || url.trim().isEmpty) return null;
+    final row = await _client
+        .from('stash_items')
+        .select()
+        .eq('user_id', user.id)
+        .eq('url', url.trim())
+        .limit(1)
+        .maybeSingle();
+    if (row == null) return null;
+    return StashItem.fromJson(row);
   }
 
   // Stash Items

@@ -16,28 +16,65 @@ import '../collection/collection_screen.dart';
 import '../collection/user_collection_screen.dart';
 import '../shared/stash_item_card.dart';
 
-// Maps a category name to a Material icon — falls back to folder
+// Maps a category name to a Material icon. Uses substring matching so
+// full AI bucket names like "Fitness & Workouts" or user folders both work.
 IconData _categoryIcon(String name) {
-  switch (name.toLowerCase()) {
-    case 'food':        return Icons.restaurant_outlined;
-    case 'finance':     return Icons.account_balance_wallet_outlined;
-    case 'work':        return Icons.work_outline;
-    case 'inspiration': return Icons.lightbulb_outline;
-    case 'health':      return Icons.fitness_center_outlined;
-    case 'travel':      return Icons.flight_outlined;
-    case 'reading':
-    case 'books':       return Icons.menu_book_outlined;
-    case 'music':       return Icons.music_note_outlined;
-    case 'art':
-    case 'design':      return Icons.palette_outlined;
-    case 'home':        return Icons.home_outlined;
-    case 'nature':      return Icons.eco_outlined;
-    case 'science':     return Icons.science_outlined;
-    case 'gaming':      return Icons.sports_esports_outlined;
-    case 'shopping':    return Icons.shopping_bag_outlined;
-    case 'social':      return Icons.people_outline;
-    default:            return Icons.folder_outlined;
+  final n = name.toLowerCase();
+  if (n.contains('fitness') || n.contains('gym') || n.contains('workout')) {
+    return Icons.fitness_center_outlined;
   }
+  if (n.contains('sport')) return Icons.sports_soccer_outlined;
+  if (n.contains('recipe') || n.contains('cook') || n.contains('food')) {
+    return Icons.restaurant_outlined;
+  }
+  if (n.contains('finance') || n.contains('money')) {
+    return Icons.account_balance_wallet_outlined;
+  }
+  if (n.contains('self-improvement') || n.contains('motivation') ||
+      n.contains('inspiration')) {
+    return Icons.lightbulb_outline;
+  }
+  if (n.contains('fashion') || n.contains('beauty')) {
+    return Icons.checkroom_outlined;
+  }
+  if (n.contains('tech') || n.contains('gadget')) {
+    return Icons.memory_outlined;
+  }
+  if (n.contains('education') || n.contains('tutorial') ||
+      n.contains('learn')) {
+    return Icons.school_outlined;
+  }
+  if (n.contains('comedy') || n.contains('meme') || n.contains('funny')) {
+    return Icons.sentiment_very_satisfied_outlined;
+  }
+  if (n.contains('edit')) return Icons.movie_filter_outlined;
+  if (n.contains('animal') || n.contains('pet')) return Icons.pets;
+  if (n.contains('travel')) return Icons.flight_outlined;
+  if (n.contains('home') || n.contains('diy')) return Icons.home_outlined;
+  if (n.contains('health') || n.contains('wellness')) {
+    return Icons.favorite_outline;
+  }
+  if (n.contains('business') || n.contains('entrepreneur') ||
+      n.contains('work')) {
+    return Icons.work_outline;
+  }
+  if (n.contains('entertainment')) return Icons.movie_outlined;
+  if (n.contains('news')) return Icons.newspaper_outlined;
+  if (n.contains('reading') || n.contains('books')) {
+    return Icons.menu_book_outlined;
+  }
+  if (n.contains('music')) return Icons.music_note_outlined;
+  if (n.contains('art') || n.contains('design')) {
+    return Icons.palette_outlined;
+  }
+  if (n.contains('gaming') || n.contains('game')) {
+    return Icons.sports_esports_outlined;
+  }
+  if (n.contains('shopping')) return Icons.shopping_bag_outlined;
+  if (n.contains('social')) return Icons.people_outline;
+  if (n.contains('nature')) return Icons.eco_outlined;
+  if (n.contains('science')) return Icons.science_outlined;
+  return Icons.folder_outlined;
 }
 
 class FolderListScreen extends StatelessWidget {
@@ -397,11 +434,12 @@ class _FolderScreenState extends State<FolderScreen> {
     final textColor = isDark ? Colors.white : AppTheme.textPrimary;
 
     int countFor(Category c) => _counts[c.id] ?? c.itemCount;
-    // Only show folders that actually contain items.
-    final nonEmpty =
-        _categories.where((c) => countFor(c) > 0).toList();
-    final pinned = nonEmpty.where((c) => c.pinned).toList();
-    final rest = nonEmpty.where((c) => !c.pinned).toList();
+    // Always show user-made folders; only hide AI-auto-filed ones when empty.
+    final visible = _categories
+        .where((c) => !c.autoCreated || countFor(c) > 0)
+        .toList();
+    final pinned = visible.where((c) => c.pinned).toList();
+    final rest = visible.where((c) => !c.pinned).toList();
 
     return Scaffold(
       body: SafeArea(
@@ -425,7 +463,7 @@ class _FolderScreenState extends State<FolderScreen> {
                                 color: textColor,
                               )),
                           const SizedBox(width: 10),
-                          Text('${nonEmpty.length}',
+                          Text('${visible.length}',
                               style: const TextStyle(
                                   color: AppTheme.textSecondary,
                                   fontSize: 15)),
