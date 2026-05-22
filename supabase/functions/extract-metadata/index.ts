@@ -200,14 +200,26 @@ serve(async (req) => {
 
     const isTT = host.includes("tiktok.com");
     const isIG = host.includes("instagram.com");
+    const isVideo = isTT ||
+      isIG ||
+      host.includes("youtube.com") ||
+      host.includes("youtu.be") ||
+      host.includes("vimeo.com");
 
-    // Order the chain by host so we hit the most reliable source first
+    // For video hosts, yt-dlp goes FIRST — it's the only source that
+    // returns the transcript + exact duration. oEmbed / OG are
+    // fallbacks if yt-dlp is unavailable. Plain links use OG only.
     const chain: Array<() => Promise<Meta | null>> = [];
-    if (isTT) chain.push(() => tiktokOEmbed(canonical));
-    if (isIG) chain.push(() => instagramOEmbed(canonical));
-    chain.push(() => genericOG(canonical));
-    if (isTT || isIG) chain.push(() => ytDlp(canonical)); // last resort
+    if (isVideo) {
+      chain.push(() => ytDlp(canonical));
+      if (isTT) chain.push(() => tiktokOEmbed(canonical));
+      if (isIG) chain.push(() => instagramOEmbed(canonical));
+      chain.push(() => genericOG(canonical));
+    } else {
+      chain.push(() => genericOG(canonical));
+    }
 
+    // First step that returns real content wins.
     let meta: Meta | null = null;
     for (const step of chain) {
       meta = await step();
